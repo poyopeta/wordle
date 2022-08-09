@@ -3,17 +3,21 @@
 #include <string.h>
 #include <time.h>
 
+#define MAX_LEN 256
+
 int check(int len, const char *ans, const char *input);
 int check_sub(int len, const char *ans, const char *input, int i);
+void reset_buf(int len, char *buf);
 
-int main(int argc, char const *argv[])
-{
+int main(int argc, char const *argv[]) {
+  printf("*type a word and press return.\n");
+
   char *datafile = "data.dat";
   FILE *fp;
   int len = 5;  // length of words
   int max_try = 6;  // times allowed to try
   int n = 0;
-  char *line = (char*)malloc(sizeof(char) * len);
+  char *line = (char*)malloc(sizeof(char) * MAX_LEN);
 
   fp = fopen(datafile, "r");
   if (fp == NULL) {
@@ -22,7 +26,6 @@ int main(int argc, char const *argv[])
   }
 
   fscanf(fp, "%d\n", &n);  // get the total number of questions
-  //printf("total number of questions: %d\n", n);
   char **q = malloc(sizeof(char*)*n);  // set questions data
   for (int i = 0; i < n; ++i) {
     q[i] = malloc(sizeof(char)*len);
@@ -34,21 +37,32 @@ int main(int argc, char const *argv[])
   srand((unsigned int)time(NULL));
   int k = rand() % n;  // pick a question number
 
-  //printf("the answer is %s\n", q[k]);
-
   for (int i = 0; i < max_try; ++i) {
-    scanf("%5[^\n]%*1[\n]", line);
-    if (strlen(line) != len) {
+    reset_buf(MAX_LEN, line);
+    int s = scanf("%[^\n]%*1[\n]", line);
+    //fflush(stdin);  // lenより長い文字列だとバッファに残ってしまう...なのでクリアする（望ましくはない）
+    if (s == 0) {  // if the input is only "return"
+      fflush(stdin);
+      reset_buf(len, line);
+      printf("\e[1A");
       --i;
     }
-    //printf("%s\n", line);
+    else if (strlen(line) != len) {  // if the input length is not equal to len
+      printf("\e[1A");
+      for (int j = 0; j < strlen(line); ++j) {
+        printf(" ");
+      }
+      printf("\r");
+      --i;
+      continue;
+    }
     int result = check(len, q[k], line);
     if (result) {
-      printf("%d / %d\n", i+1, max_try);
+      printf("\nnicely done! %d/%d\n", i+1, max_try);
       break;
     }
     else if (i == max_try-1) {
-      printf("the answer is %s\n", q[k]);
+      printf("\n*the answer is \"%s\". try again!\n", q[k]);
     }
   }
 
@@ -88,4 +102,10 @@ int check_sub(int len, const char *ans, const char *input, int i) {
     }
   }
   return 0;
+}
+
+void reset_buf(int len, char *buf) {
+  for (int i = 0; i < len; ++i) {
+    buf[i] = 0;
+  }
 }
